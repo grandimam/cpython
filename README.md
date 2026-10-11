@@ -13,6 +13,10 @@
 
 [Quick start](#-quick-start) · [What's new](#-whats-new-in-this-fork) · [Try it](#-try-it) · [How it works](#-how-it-works) · [Caveats](#-caveats)
 
+<br/>
+
+<img src="Misc/demo/none-aware.gif" alt="Demo: response?.customer?.name.lower() returns None instead of raising AttributeError" width="800" />
+
 </div>
 
 ---
@@ -26,7 +30,24 @@
 
 ## ⚡ Quick start
 
-Build from source in under five minutes (macOS / Linux):
+### Zero install — open in Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/grandimam/cpython?quickstart=1)
+
+One click gives you a cloud VS Code with the interpreter already compiled.
+When the terminal opens, just run:
+
+```bash
+./python -c 'print(None?.upper(), "hi"?.upper())'   # None HI
+```
+
+> Codespaces runs on *your* GitHub account's free quota (120 core-hours/month
+> on personal accounts — no paid plan required). The first build takes a few
+> minutes; the interpreter is ready when the welcome message appears.
+
+### Build from source
+
+Takes about five minutes on macOS / Linux:
 
 ```bash
 git clone https://github.com/grandimam/cpython.git
@@ -44,6 +65,7 @@ Prefer a throwaway, side-by-side install so your system Python is untouched:
 ./configure --prefix="$HOME/.local/cpython-experimental"
 make -j8 && make altinstall
 "$HOME/.local/cpython-experimental/bin/python3.16" --version
+# Python 3.16.0a0+grandimam.0.1
 ```
 
 <details>
