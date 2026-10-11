@@ -343,6 +343,12 @@ class UnparseTestCase(ASTTestCase):
     def test_attribute_on_int_still_spaced(self):
         self.check_src_roundtrip("x = 3 .__abs__()")
 
+    def test_none_aware_attribute(self):
+        self.check_src_roundtrip("x = a?.b")
+        self.check_src_roundtrip("x = a?.b.c?.d(1)[2]?.e")
+        self.check_src_roundtrip("x = (a + b)?.c")
+        self.check_src_roundtrip("x = -a?.b")
+
     def test_huge_float(self):
         self.check_ast_roundtrip("1e1000")
         self.check_ast_roundtrip("-1e1000")

@@ -371,6 +371,9 @@ validate_expr(expr_ty exp, expr_context_ty ctx)
     case Attribute_kind:
         ret = validate_expr(exp->v.Attribute.value, Load);
         break;
+    case NoneAwareAttribute_kind:
+        ret = validate_expr(exp->v.NoneAwareAttribute.value, Load);
+        break;
     case Subscript_kind:
         ret = validate_expr(exp->v.Subscript.slice, Load) &&
             validate_expr(exp->v.Subscript.value, Load);

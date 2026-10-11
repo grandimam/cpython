@@ -342,6 +342,8 @@ eval_tests = [
   "'string'",
   # Attribute
   "a.b",
+  # NoneAwareAttribute
+  "a?.b",
   # Subscript
   "a[b:c]",
   # Name
@@ -596,6 +598,7 @@ eval_results = [
 ('Expression', ('Constant', (1, 0, 1, 2), 1j, None)),
 ('Expression', ('Constant', (1, 0, 1, 8), 'string', None)),
 ('Expression', ('Attribute', (1, 0, 1, 3), ('Name', (1, 0, 1, 1), 'a', ('Load',)), 'b', ('Load',))),
+('Expression', ('NoneAwareAttribute', (1, 0, 1, 4), ('Name', (1, 0, 1, 1), 'a', ('Load',)), 'b')),
 ('Expression', ('Subscript', (1, 0, 1, 6), ('Name', (1, 0, 1, 1), 'a', ('Load',)), ('Slice', (1, 2, 1, 5), ('Name', (1, 2, 1, 3), 'b', ('Load',)), ('Name', (1, 4, 1, 5), 'c', ('Load',)), None), ('Load',))),
 ('Expression', ('Name', (1, 0, 1, 1), 'v', ('Load',))),
 ('Expression', ('List', (1, 0, 1, 7), [('Constant', (1, 1, 1, 2), 1, None), ('Constant', (1, 3, 1, 4), 2, None), ('Constant', (1, 5, 1, 6), 3, None)], ('Load',))),

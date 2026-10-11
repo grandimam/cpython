@@ -859,6 +859,7 @@ await_primary[expr_ty] (memo):
 
 primary[expr_ty]:
     | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA) }
+    | a=primary '?.' b=NAME { CHECK_VERSION(expr_ty, 16, "None-aware attribute access is", _PyAST_NoneAwareAttribute(a, b->v.Name.id, EXTRA)) }
     | a=primary b=genexp { _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA) }
     | a=primary '(' b=[arguments] ')' {
         _PyAST_Call(a,
@@ -1125,7 +1126,7 @@ attribute_or_subscript_target[expr_ty]:
     | a=target_value { _PyPegen_make_target(p, a, ATTRIBUTE_OR_SUBSCRIPT_TARGETS) }
 
 target_value[expr_ty]:
-    | a=primary !('(' | '[' | '.') { a }
+    | a=primary !('(' | '[' | '.' | '?.') { a }
 
 # Targets for del statements
 # --------------------------

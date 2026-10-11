@@ -130,6 +130,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, Mult_type),
         offsetof(struct ast_state, Name_type),
         offsetof(struct ast_state, NamedExpr_type),
+        offsetof(struct ast_state, NoneAwareAttribute_type),
         offsetof(struct ast_state, Nonlocal_type),
         offsetof(struct ast_state, NotEq_singleton),
         offsetof(struct ast_state, NotEq_type),
@@ -650,6 +651,10 @@ static const char * const Constant_fields[]={
     "value",
     "kind",
 };
+static const char * const NoneAwareAttribute_fields[]={
+    "value",
+    "attr",
+};
 static const char * const Attribute_fields[]={
     "value",
     "attr",
@@ -1113,6 +1118,10 @@ add_ast_annotations(struct ast_state *state)
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, attr),
          0, FIELD_BUILTIN},
+        {offsetof(struct ast_state, value),
+         offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, attr),
+         0, FIELD_BUILTIN},
         {offsetof(struct ast_state, ctx),
          offsetof(struct ast_state, expr_context_type), 0},
         {offsetof(struct ast_state, value),
@@ -1301,65 +1310,66 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, JoinedStr_type), 128, 1},
         {offsetof(struct ast_state, TemplateStr_type), 129, 1},
         {offsetof(struct ast_state, Constant_type), 130, 2},
-        {offsetof(struct ast_state, Attribute_type), 132, 3},
-        {offsetof(struct ast_state, Subscript_type), 135, 3},
-        {offsetof(struct ast_state, Starred_type), 138, 2},
-        {offsetof(struct ast_state, Name_type), 140, 2},
-        {offsetof(struct ast_state, List_type), 142, 2},
-        {offsetof(struct ast_state, Tuple_type), 144, 2},
-        {offsetof(struct ast_state, Slice_type), 146, 3},
-        {offsetof(struct ast_state, Load_type), 149, 0},
-        {offsetof(struct ast_state, Store_type), 149, 0},
-        {offsetof(struct ast_state, Del_type), 149, 0},
-        {offsetof(struct ast_state, And_type), 149, 0},
-        {offsetof(struct ast_state, Or_type), 149, 0},
-        {offsetof(struct ast_state, Add_type), 149, 0},
-        {offsetof(struct ast_state, Sub_type), 149, 0},
-        {offsetof(struct ast_state, Mult_type), 149, 0},
-        {offsetof(struct ast_state, MatMult_type), 149, 0},
-        {offsetof(struct ast_state, Div_type), 149, 0},
-        {offsetof(struct ast_state, Mod_type), 149, 0},
-        {offsetof(struct ast_state, Pow_type), 149, 0},
-        {offsetof(struct ast_state, LShift_type), 149, 0},
-        {offsetof(struct ast_state, RShift_type), 149, 0},
-        {offsetof(struct ast_state, BitOr_type), 149, 0},
-        {offsetof(struct ast_state, BitXor_type), 149, 0},
-        {offsetof(struct ast_state, BitAnd_type), 149, 0},
-        {offsetof(struct ast_state, FloorDiv_type), 149, 0},
-        {offsetof(struct ast_state, Invert_type), 149, 0},
-        {offsetof(struct ast_state, Not_type), 149, 0},
-        {offsetof(struct ast_state, UAdd_type), 149, 0},
-        {offsetof(struct ast_state, USub_type), 149, 0},
-        {offsetof(struct ast_state, Eq_type), 149, 0},
-        {offsetof(struct ast_state, NotEq_type), 149, 0},
-        {offsetof(struct ast_state, Lt_type), 149, 0},
-        {offsetof(struct ast_state, LtE_type), 149, 0},
-        {offsetof(struct ast_state, Gt_type), 149, 0},
-        {offsetof(struct ast_state, GtE_type), 149, 0},
-        {offsetof(struct ast_state, Is_type), 149, 0},
-        {offsetof(struct ast_state, IsNot_type), 149, 0},
-        {offsetof(struct ast_state, In_type), 149, 0},
-        {offsetof(struct ast_state, NotIn_type), 149, 0},
-        {offsetof(struct ast_state, comprehension_type), 149, 4},
-        {offsetof(struct ast_state, ExceptHandler_type), 153, 3},
-        {offsetof(struct ast_state, arguments_type), 156, 7},
-        {offsetof(struct ast_state, arg_type), 163, 3},
-        {offsetof(struct ast_state, keyword_type), 166, 2},
-        {offsetof(struct ast_state, alias_type), 168, 2},
-        {offsetof(struct ast_state, withitem_type), 170, 2},
-        {offsetof(struct ast_state, match_case_type), 172, 3},
-        {offsetof(struct ast_state, MatchValue_type), 175, 1},
-        {offsetof(struct ast_state, MatchSingleton_type), 176, 1},
-        {offsetof(struct ast_state, MatchSequence_type), 177, 1},
-        {offsetof(struct ast_state, MatchMapping_type), 178, 3},
-        {offsetof(struct ast_state, MatchClass_type), 181, 4},
-        {offsetof(struct ast_state, MatchStar_type), 185, 1},
-        {offsetof(struct ast_state, MatchAs_type), 186, 2},
-        {offsetof(struct ast_state, MatchOr_type), 188, 1},
-        {offsetof(struct ast_state, TypeIgnore_type), 189, 2},
-        {offsetof(struct ast_state, TypeVar_type), 191, 3},
-        {offsetof(struct ast_state, ParamSpec_type), 194, 2},
-        {offsetof(struct ast_state, TypeVarTuple_type), 196, 2},
+        {offsetof(struct ast_state, NoneAwareAttribute_type), 132, 2},
+        {offsetof(struct ast_state, Attribute_type), 134, 3},
+        {offsetof(struct ast_state, Subscript_type), 137, 3},
+        {offsetof(struct ast_state, Starred_type), 140, 2},
+        {offsetof(struct ast_state, Name_type), 142, 2},
+        {offsetof(struct ast_state, List_type), 144, 2},
+        {offsetof(struct ast_state, Tuple_type), 146, 2},
+        {offsetof(struct ast_state, Slice_type), 148, 3},
+        {offsetof(struct ast_state, Load_type), 151, 0},
+        {offsetof(struct ast_state, Store_type), 151, 0},
+        {offsetof(struct ast_state, Del_type), 151, 0},
+        {offsetof(struct ast_state, And_type), 151, 0},
+        {offsetof(struct ast_state, Or_type), 151, 0},
+        {offsetof(struct ast_state, Add_type), 151, 0},
+        {offsetof(struct ast_state, Sub_type), 151, 0},
+        {offsetof(struct ast_state, Mult_type), 151, 0},
+        {offsetof(struct ast_state, MatMult_type), 151, 0},
+        {offsetof(struct ast_state, Div_type), 151, 0},
+        {offsetof(struct ast_state, Mod_type), 151, 0},
+        {offsetof(struct ast_state, Pow_type), 151, 0},
+        {offsetof(struct ast_state, LShift_type), 151, 0},
+        {offsetof(struct ast_state, RShift_type), 151, 0},
+        {offsetof(struct ast_state, BitOr_type), 151, 0},
+        {offsetof(struct ast_state, BitXor_type), 151, 0},
+        {offsetof(struct ast_state, BitAnd_type), 151, 0},
+        {offsetof(struct ast_state, FloorDiv_type), 151, 0},
+        {offsetof(struct ast_state, Invert_type), 151, 0},
+        {offsetof(struct ast_state, Not_type), 151, 0},
+        {offsetof(struct ast_state, UAdd_type), 151, 0},
+        {offsetof(struct ast_state, USub_type), 151, 0},
+        {offsetof(struct ast_state, Eq_type), 151, 0},
+        {offsetof(struct ast_state, NotEq_type), 151, 0},
+        {offsetof(struct ast_state, Lt_type), 151, 0},
+        {offsetof(struct ast_state, LtE_type), 151, 0},
+        {offsetof(struct ast_state, Gt_type), 151, 0},
+        {offsetof(struct ast_state, GtE_type), 151, 0},
+        {offsetof(struct ast_state, Is_type), 151, 0},
+        {offsetof(struct ast_state, IsNot_type), 151, 0},
+        {offsetof(struct ast_state, In_type), 151, 0},
+        {offsetof(struct ast_state, NotIn_type), 151, 0},
+        {offsetof(struct ast_state, comprehension_type), 151, 4},
+        {offsetof(struct ast_state, ExceptHandler_type), 155, 3},
+        {offsetof(struct ast_state, arguments_type), 158, 7},
+        {offsetof(struct ast_state, arg_type), 165, 3},
+        {offsetof(struct ast_state, keyword_type), 168, 2},
+        {offsetof(struct ast_state, alias_type), 170, 2},
+        {offsetof(struct ast_state, withitem_type), 172, 2},
+        {offsetof(struct ast_state, match_case_type), 174, 3},
+        {offsetof(struct ast_state, MatchValue_type), 177, 1},
+        {offsetof(struct ast_state, MatchSingleton_type), 178, 1},
+        {offsetof(struct ast_state, MatchSequence_type), 179, 1},
+        {offsetof(struct ast_state, MatchMapping_type), 180, 3},
+        {offsetof(struct ast_state, MatchClass_type), 183, 4},
+        {offsetof(struct ast_state, MatchStar_type), 187, 1},
+        {offsetof(struct ast_state, MatchAs_type), 188, 2},
+        {offsetof(struct ast_state, MatchOr_type), 190, 1},
+        {offsetof(struct ast_state, TypeIgnore_type), 191, 2},
+        {offsetof(struct ast_state, TypeVar_type), 193, 3},
+        {offsetof(struct ast_state, ParamSpec_type), 196, 2},
+        {offsetof(struct ast_state, TypeVarTuple_type), 198, 2},
     };
     char *base = (char *)state;
     PyObject *annotations = NULL;
@@ -2613,6 +2623,7 @@ init_types(void *arg)
         "     | JoinedStr(expr* values)\n"
         "     | TemplateStr(expr* values)\n"
         "     | Constant(constant value, string? kind)\n"
+        "     | NoneAwareAttribute(expr value, identifier attr)\n"
         "     | Attribute(expr value, identifier attr, expr_context ctx)\n"
         "     | Subscript(expr value, expr slice, expr_context ctx)\n"
         "     | Starred(expr value, expr_context ctx)\n"
@@ -2731,6 +2742,11 @@ init_types(void *arg)
     if (!state->Constant_type) return -1;
     if (PyObject_SetAttr(state->Constant_type, state->kind, Py_None) == -1)
         return -1;
+    state->NoneAwareAttribute_type = make_type(state, "NoneAwareAttribute",
+                                               state->expr_type,
+                                               NoneAwareAttribute_fields, 2,
+        "NoneAwareAttribute(expr value, identifier attr)");
+    if (!state->NoneAwareAttribute_type) return -1;
     state->Attribute_type = make_type(state, "Attribute", state->expr_type,
                                       Attribute_fields, 3,
         "Attribute(expr value, identifier attr, expr_context ctx)");
@@ -4505,6 +4521,35 @@ _PyAST_Constant(constant value, string kind, int lineno, int col_offset, int
 }
 
 expr_ty
+_PyAST_NoneAwareAttribute(expr_ty value, identifier attr, int lineno, int
+                          col_offset, int end_lineno, int end_col_offset,
+                          PyArena *arena)
+{
+    expr_ty p;
+    if (!value) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'value' is required for NoneAwareAttribute");
+        return NULL;
+    }
+    if (!attr) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'attr' is required for NoneAwareAttribute");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = NoneAwareAttribute_kind;
+    p->v.NoneAwareAttribute.value = value;
+    p->v.NoneAwareAttribute.attr = attr;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
 _PyAST_Attribute(expr_ty value, identifier attr, expr_context_ty ctx, int
                  lineno, int col_offset, int end_lineno, int end_col_offset,
                  PyArena *arena)
@@ -6169,6 +6214,21 @@ ast2obj_expr(struct ast_state *state, void* _o)
         value = ast2obj_string(state, o->v.Constant.kind);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->kind, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case NoneAwareAttribute_kind:
+        tp = (PyTypeObject *)state->NoneAwareAttribute_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.NoneAwareAttribute.value);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->value, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_identifier(state, o->v.NoneAwareAttribute.attr);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->attr, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -11571,6 +11631,54 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, const char*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->NoneAwareAttribute_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty value;
+        identifier attr;
+
+        if (PyObject_GetOptionalAttr(obj, state->value, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from NoneAwareAttribute");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareAttribute' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &value, "value", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->attr, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"attr\" missing from NoneAwareAttribute");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareAttribute' node")) {
+                goto failed;
+            }
+            res = obj2ast_identifier(state, tmp, &attr, "attr", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_NoneAwareAttribute(value, attr, lineno, col_offset,
+                                         end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Attribute_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -14546,6 +14654,10 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Constant", state->Constant_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "NoneAwareAttribute",
+        state->NoneAwareAttribute_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Attribute", state->Attribute_type) < 0) {

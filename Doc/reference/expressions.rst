@@ -1289,7 +1289,7 @@ Primaries represent the most tightly bound operations of the language. Their
 syntax is:
 
 .. productionlist:: python-grammar
-   primary: `atom` | `attributeref` | `subscription` | `call`
+   primary: `atom` | `attributeref` | `none_aware_attributeref` | `subscription` | `call`
 
 
 .. _attribute-references:
@@ -1325,6 +1325,40 @@ available.
 
 If an :exc:`AttributeError` is raised and the object has a :meth:`!__getattr__`
 method, that method is called as a fallback.
+
+
+.. _none-aware-attribute-references:
+
+None-aware attribute references
+-------------------------------
+
+.. index::
+   pair: None-aware; attribute reference
+   single: ?. ; None-aware attribute reference
+
+A None-aware attribute reference is a primary followed by ``?.`` and a name:
+
+.. productionlist:: python-grammar
+   none_aware_attributeref: `primary` "?." `identifier`
+
+The primary is evaluated. If its value is ``None``, the result of the whole
+enclosing chain of attribute references, subscriptions and calls is ``None``,
+and the remainder of the chain is not evaluated.  Otherwise, the expression
+behaves like an ordinary :ref:`attribute reference <attribute-references>`.
+
+For example, if ``response`` is ``None`` then ``response?.customer.name``
+evaluates to ``None`` without accessing ``customer`` or ``name``, and in
+``response?.customer?.name.lower()`` the call to :meth:`~str.lower` is
+skipped if either ``response`` or ``response.customer`` is ``None``.
+
+The short-circuiting only applies to the chain of primaries the operator is
+part of: in ``x?.a + 1``, the addition is always evaluated.  Only ``None``
+short-circuits; other false values such as ``0`` or ``''`` do not.
+
+A None-aware attribute reference cannot be used as an assignment or
+:keyword:`del` target.
+
+.. versionadded:: 3.16
 
 .. _subscriptions:
 

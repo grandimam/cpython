@@ -833,6 +833,17 @@ f'''__{
     OP         ')'           (2, 29) (2, 30)
     """)
 
+    def test_none_aware_selector(self):
+        self.check_tokenize("x = a?.b?.c", """\
+    NAME       'x'           (1, 0) (1, 1)
+    OP         '='           (1, 2) (1, 3)
+    NAME       'a'           (1, 4) (1, 5)
+    OP         '?.'          (1, 5) (1, 7)
+    NAME       'b'           (1, 7) (1, 8)
+    OP         '?.'          (1, 8) (1, 10)
+    NAME       'c'           (1, 10) (1, 11)
+    """)
+
     def test_method(self):
         # Methods
         self.check_tokenize("@staticmethod\ndef foo(x,y): pass", """\

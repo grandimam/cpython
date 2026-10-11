@@ -1120,6 +1120,8 @@ _PyPegen_get_expr_name(expr_ty e)
     switch (e->kind) {
         case Attribute_kind:
             return "attribute";
+        case NoneAwareAttribute_kind:
+            return "None-aware attribute";
         case Subscript_kind:
             return "subscript";
         case Starred_kind:

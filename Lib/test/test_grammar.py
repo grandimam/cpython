@@ -1669,6 +1669,74 @@ class GrammarTests(unittest.TestCase):
         L.sort(key=lambda x: (type(x).__name__, x))
         self.assertEqual(str(L), '[1, (1,), (1, 2), (1, 2, 3)]')
 
+    def test_none_aware_attribute(self):
+        ### primary: primary '?.' NAME
+        class Spy:
+            calls = []
+            def __getattr__(self, name):
+                self.calls.append(name)
+                return self
+            def __call__(self, *args):
+                self.calls.append(('call', args))
+                return self
+            def __getitem__(self, key):
+                self.calls.append(('item', key))
+                return self
+
+        s = Spy()
+        x = None
+
+        self.assertIs(s?.a, s)
+        self.assertEqual(s.calls, ['a'])
+        self.assertIs(x?.a, None)
+
+        # A `?.` short-circuits the rest of the chain, but not beyond it.
+        s.calls.clear()
+        self.assertIs(x?.a.b()[0](1)[1:2], None)
+        self.assertEqual(s.calls, [])
+        self.assertIs(s?.a.b()[0](1)[1:2], s)
+        self.assertEqual(s.calls, ['a', 'b', ('call', ()), ('item', 0),
+                                   ('call', (1,)), ('item', slice(1, 2))])
+        self.assertIs(s?.n?.a, s)
+        self.assertIs(x?.a is None, True)
+        self.assertEqual([x?.a, 1], [None, 1])
+        # Parentheses do not delimit the chain.
+        self.assertIs((x?.a).b, None)
+
+        # The operand is only evaluated once.
+        s.calls.clear()
+        self.assertIs(s?.a?.b, s)
+        self.assertEqual(s.calls, ['a', 'b'])
+
+        # Arguments of a short-circuited call are not evaluated.
+        def arg():
+            raise AssertionError('should not be evaluated')
+        self.assertIs(x?.f(arg()), None)
+        self.assertIs(x?.f[arg()], None)
+
+        # Only None short-circuits, not other falsy values.
+        self.assertEqual(''?.upper(), '')
+        self.assertEqual((0)?.real, 0)
+
+        # The operator has the same precedence as `.`.
+        with self.assertRaises(TypeError):
+            -x?.a
+        self.assertIs(not x?.a, True)
+        self.assertIs(x ?. a, None)
+
+        # Not valid in assignment targets.
+        check_syntax_error(self, "x?.a = 1")
+        check_syntax_error(self, "x?.a += 1")
+        check_syntax_error(self, "x?.a: int = 1")
+        check_syntax_error(self, "del x?.a")
+        check_syntax_error(self, "for x?.a in y: pass")
+        check_syntax_error(self, "with y as x?.a: pass")
+        check_syntax_error(self, "(x?.a := 1)")
+        check_syntax_error(self, "x?.(a)")
+        check_syntax_error(self, "x?.1")
+        check_syntax_error(self, "x?a")
+        check_syntax_error(self, "x? .a")
+
     def test_atoms(self):
         ### atom: '(' [testlist] ')' | '[' [testlist] ']' | '{' [dictsetmaker] '}' | NAME | NUMBER | STRING
         ### dictsetmaker: (test ':' test (',' test ':' test)* [',']) | (test (',' test)* [','])

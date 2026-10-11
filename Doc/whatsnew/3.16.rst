@@ -70,6 +70,29 @@ Summary --- release highlights
 New features
 ============
 
+.. _whatsnew316-none-aware-attribute:
+
+None-aware attribute access
+---------------------------
+
+The new ``?.`` operator provides :ref:`None-aware attribute access
+<none-aware-attribute-references>`.  ``a?.b`` evaluates to ``None`` if ``a``
+is ``None``, and to ``a.b`` otherwise.  When the left operand is ``None``,
+the rest of the enclosing chain of attribute references, subscriptions and
+calls is skipped as well::
+
+   class User:
+       name: str | None
+
+   class Response:
+       customer: User | None
+
+   # Lowercase name or None
+   name = response?.customer?.name.lower()
+
+The operator is only available in load context; ``a?.b`` cannot be assigned
+to or deleted.  It is represented in the AST by the new
+:class:`ast.NoneAwareAttribute` node.
 
 
 Other language changes

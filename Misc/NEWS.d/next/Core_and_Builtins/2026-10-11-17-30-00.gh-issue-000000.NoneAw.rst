@@ -1,0 +1,4 @@
+Add the None-aware attribute access operator ``?.``. ``a?.b`` evaluates to
+``None`` if ``a`` is ``None``, short-circuiting the rest of the enclosing
+chain of attribute references, subscriptions and calls. The new
+:class:`ast.NoneAwareAttribute` node represents it in the AST.

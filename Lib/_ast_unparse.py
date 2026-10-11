@@ -934,6 +934,12 @@ class Unparser(NodeVisitor):
         self.write(".")
         self.write(node.attr)
 
+    def visit_NoneAwareAttribute(self, node):
+        self.set_precedence(_Precedence.ATOM, node.value)
+        self.traverse(node.value)
+        self.write("?.")
+        self.write(node.attr)
+
     def visit_Call(self, node):
         self.set_precedence(_Precedence.ATOM, node.func)
         self.traverse(node.func)

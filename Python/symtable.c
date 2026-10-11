@@ -2643,6 +2643,12 @@ symtable_visit_expr(struct symtable *st, expr_ty e)
         }
         VISIT(st, expr, e->v.Attribute.value);
         break;
+    case NoneAwareAttribute_kind:
+        if (!check_name(st, e->v.NoneAwareAttribute.attr, LOCATION(e), Load)) {
+            return 0;
+        }
+        VISIT(st, expr, e->v.NoneAwareAttribute.value);
+        break;
     case Subscript_kind:
         VISIT(st, expr, e->v.Subscript.value);
         VISIT(st, expr, e->v.Subscript.slice);

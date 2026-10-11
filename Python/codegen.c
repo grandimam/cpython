@@ -209,6 +209,7 @@ static int codegen_annassign(compiler *, stmt_ty);
 static int codegen_subscript(compiler *, expr_ty);
 static int codegen_slice_two_parts(compiler *, expr_ty);
 static int codegen_slice(compiler *, expr_ty);
+static bool should_apply_two_element_slice_optimization(expr_ty);
 
 static int codegen_body(compiler *, location, asdl_stmt_seq *, bool);
 static int codegen_with(compiler *, stmt_ty);
@@ -5476,11 +5477,121 @@ codegen_with(compiler *c, stmt_ty s)
     return codegen_with_inner(c, s, 0);
 }
 
+/* None-aware attribute access (`a?.b`).
+ *
+ * A `?.` short-circuits the whole enclosing chain of attribute accesses,
+ * subscripts and calls: in `a?.b.c()`, if `a` is None, the value of the
+ * entire expression is None and neither `.c` nor the call are evaluated.
+ *
+ * This is implemented by compiling the chain with a shared "skip" label
+ * that is jumped to (with None on the stack) whenever a `?.` operand is
+ * None.
+ */
+
+static bool
+is_none_aware_chain_link(expr_ty e)
+{
+    switch (e->kind) {
+    case Attribute_kind:
+        return e->v.Attribute.ctx == Load;
+    case Subscript_kind:
+        return e->v.Subscript.ctx == Load;
+    case Call_kind:
+    case NoneAwareAttribute_kind:
+        return true;
+    default:
+        return false;
+    }
+}
+
+/* Return true if `e` is the (outermost) node of a chain that contains
+ * at least one None-aware attribute access. */
+static bool
+chain_has_none_aware(expr_ty e)
+{
+    while (is_none_aware_chain_link(e)) {
+        switch (e->kind) {
+        case NoneAwareAttribute_kind:
+            return true;
+        case Attribute_kind:
+            e = e->v.Attribute.value;
+            break;
+        case Subscript_kind:
+            e = e->v.Subscript.value;
+            break;
+        case Call_kind:
+            e = e->v.Call.func;
+            break;
+        default:
+            Py_UNREACHABLE();
+        }
+    }
+    return false;
+}
+
+static int
+codegen_none_aware_chain_link(compiler *c, expr_ty e, jump_target_label skip)
+{
+    location loc = LOC(e);
+    switch (e->kind) {
+    case NoneAwareAttribute_kind:
+        RETURN_IF_ERROR(codegen_none_aware_chain_link(
+            c, e->v.NoneAwareAttribute.value, skip));
+        ADDOP_I(c, loc, COPY, 1);
+        ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, skip);
+        ADDOP_NAME(c, loc, LOAD_ATTR, e->v.NoneAwareAttribute.attr, names);
+        return SUCCESS;
+    case Attribute_kind:
+        assert(e->v.Attribute.ctx == Load);
+        RETURN_IF_ERROR(codegen_none_aware_chain_link(
+            c, e->v.Attribute.value, skip));
+        loc = update_start_location_to_match_attr(c, loc, e);
+        ADDOP_NAME(c, loc, LOAD_ATTR, e->v.Attribute.attr, names);
+        return SUCCESS;
+    case Subscript_kind:
+        assert(e->v.Subscript.ctx == Load);
+        RETURN_IF_ERROR(codegen_none_aware_chain_link(
+            c, e->v.Subscript.value, skip));
+        if (should_apply_two_element_slice_optimization(e->v.Subscript.slice)) {
+            RETURN_IF_ERROR(codegen_slice_two_parts(c, e->v.Subscript.slice));
+            ADDOP(c, loc, BINARY_SLICE);
+        }
+        else {
+            VISIT(c, expr, e->v.Subscript.slice);
+            ADDOP_I(c, loc, BINARY_OP, NB_SUBSCR);
+        }
+        return SUCCESS;
+    case Call_kind:
+        RETURN_IF_ERROR(codegen_validate_keywords(c, e->v.Call.keywords));
+        RETURN_IF_ERROR(codegen_none_aware_chain_link(c, e->v.Call.func, skip));
+        ADDOP(c, LOC(e->v.Call.func), PUSH_NULL);
+        return codegen_call_helper(c, loc, 0,
+                                   e->v.Call.args,
+                                   e->v.Call.keywords);
+    default:
+        /* Start of the chain: a regular expression. */
+        VISIT(c, expr, e);
+        return SUCCESS;
+    }
+}
+
+static int
+codegen_none_aware_chain(compiler *c, expr_ty e)
+{
+    NEW_JUMP_TARGET_LABEL(c, skip);
+    RETURN_IF_ERROR(codegen_none_aware_chain_link(c, e, skip));
+    USE_LABEL(c, skip);
+    return SUCCESS;
+}
+
 static int
 codegen_visit_expr_impl(compiler *c, expr_ty e, bool result_is_unused)
 {
     if (Py_EnterRecursiveCall(" during compilation")) {
         return ERROR;
+    }
+    if (chain_has_none_aware(e)) {
+        return codegen_none_aware_chain(c, e);
     }
     location loc = LOC(e);
     switch (e->kind) {
@@ -5571,6 +5682,8 @@ codegen_visit_expr_impl(compiler *c, expr_ty e, bool result_is_unused)
         return codegen_formatted_value(c, e);
     case Interpolation_kind:
         return codegen_interpolation(c, e);
+    case NoneAwareAttribute_kind:
+        return codegen_none_aware_chain(c, e);
     /* The following exprs can be assignment targets. */
     case Attribute_kind:
         if (e->v.Attribute.ctx == Load) {
